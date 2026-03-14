@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PARIVESH Public Transparency Dashboard</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <style>
+    body { margin: 0; font-family: Segoe UI, Arial, sans-serif; background: #f6f8fb; color: #0f172a; }
+    .wrap { max-width: 1200px; margin: 0 auto; padding: 24px; }
+    .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; box-shadow: 0 2px 10px rgba(15,23,42,.04); }
+    .header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+    .title { margin: 0; font-size: 28px; }
+    .sub { margin: 6px 0 0; color: #475569; }
+    .filters { display: grid; grid-template-columns: 1fr 220px 220px; gap: 10px; margin-bottom: 14px; }
+    .filters input, .filters select { height: 40px; border-radius: 10px; border: 1px solid #cbd5e1; padding: 0 12px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: left; font-size: 14px; }
+    th { background: #f8fafc; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: #475569; }
+    .status { display: inline-block; border-radius: 999px; font-size: 12px; padding: 4px 10px; font-weight: 600; }
+    .risk { display: inline-block; border-radius: 999px; font-size: 12px; padding: 4px 10px; font-weight: 600; }
+    .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+    #map { height: 520px; border-radius: 12px; }
+    .btn { background: linear-gradient(90deg,#2563eb,#059669); color: #fff; border: none; border-radius: 8px; padding: 7px 12px; text-decoration: none; font-size: 13px; font-weight: 600; display: inline-block; }
+    @media (max-width: 960px) { .grid { grid-template-columns: 1fr; } .filters { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="header">
+      <div>
+        <h1 class="title">Public Transparency Dashboard</h1>
+        <p class="sub">Environmental clearance projects under public review</p>
+      </div>
+    </div>
+
+    <div class="filters">
+      <input id="search" placeholder="Search by project name, id, location" />
+      <select id="status">
+        <option value="">All Statuses</option>
+        <option value="SUBMITTED">Submitted</option>
+        <option value="UNDER_SCRUTINY">Under Scrutiny</option>
+        <option value="REFERRED">Referred</option>
+        <option value="MOM_GENERATED">MoM Generated</option>
+        <option value="FINALIZED">Finalized</option>
+      </select>
+      <input id="sector" placeholder="Sector filter" />
+    </div>
+
+    <div class="grid">
+      <div class="card" style="overflow: hidden;">
+        <table>
+          <thead>
+            <tr>
+              <th>Application ID</th>
+              <th>Project Name</th>
+              <th>Sector</th>
+              <th>Location</th>
+              <th>Status</th>
+              <th>Risk Score</th>
+              <th>View Details</th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+      <div class="card" style="padding: 10px;">
+        <div id="map"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script>
+    const apiBase = (window.location.origin.includes('localhost:5173') ? 'http://localhost:5000' : window.location.origin) + '/api/v1/public/projects';
+    const rows = document.getElementById('rows');
+    const searchEl = document.getElementById('search');
+    const statusEl = document.getElementById('status');
+    const sectorEl = document.getElementById('sector');
+
+    const map = L.map('map').setView([22.59, 78.96], 4);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors',
+    }).addTo(map);
+
+    let markers = [];
+    let items = [];
+
+    const statusStyle = (s) => {
+      if (s === 'FINALIZED') return 'background:#dcfce7;color:#047857;';
+      if (s === 'MOM_GENERATED') return 'background:#f3e8ff;color:#7e22ce;';
+      if (s === 'REFERRED') return 'background:#cffafe;color:#0f766e;';
+      if (s === 'UNDER_SCRUTINY') return 'background:#fef3c7;color:#b45309;';
+      return 'background:#dbeafe;color:#1d4ed8;';
+    };
+
+    const riskStyle = (b) => {
+      if (b === 'HIGH') return 'background:#fee2e2;color:#b91c1c;';
+      if (b === 'MODERATE') return 'background:#fef3c7;color:#b45309;';
+      return 'background:#dcfce7;color:#047857;';
+    };
+
+    const applyLocalSearch = () => {
+      const q = searchEl.value.trim().toLowerCase();
+      return items.filter((p) => (`${p.application_id} ${p.project_name} ${p.sector} ${p.project_location}`).toLowerCase().includes(q));
+    };
+
+    const render = () => {
+      const list = applyLocalSearch();
+      rows.innerHTML = list.map((p) => `
+        <tr>
+          <td>#${p.application_id}</td>
+          <td>${p.project_name}</td>
+          <td>${p.sector}</td>
+          <td>${p.project_location}</td>
+          <td><span class="status" style="${statusStyle(p.current_status)}">${p.current_status.replaceAll('_', ' ')}</span></td>
+          <td><span class="risk" style="${riskStyle(p.environmental_risk_band)}">${p.environmental_risk_score} (${p.environmental_risk_band})</span></td>
+          <td><a class="btn" href="/projects/${p.application_id}">View</a></td>
+        </tr>
+      `).join('');
+
+      markers.forEach((m) => map.removeLayer(m));
+      markers = list.map((p) => {
+        const marker = L.circleMarker([p.map_lat, p.map_lng], {
+          radius: 7,
+          color: p.environmental_risk_band === 'HIGH' ? '#dc2626' : p.environmental_risk_band === 'MODERATE' ? '#d97706' : '#059669',
+          fillOpacity: 0.65,
+        }).bindPopup(`<b>${p.project_name}</b><br/>Sector: ${p.sector}<br/>Status: ${p.current_status}<br/>Risk: ${p.environmental_risk_score}`);
+        marker.addTo(map);
+        return marker;
+      });
+    };
+
+    const load = async () => {
+      const params = new URLSearchParams();
+      if (statusEl.value) params.set('status', statusEl.value);
+      if (sectorEl.value.trim()) params.set('sector', sectorEl.value.trim());
+      const res = await fetch(`${apiBase}?${params.toString()}`);
+      const payload = await res.json();
+      items = payload.data?.items || [];
+      render();
+    };
+
+    searchEl.addEventListener('input', render);
+    statusEl.addEventListener('change', load);
+    sectorEl.addEventListener('change', load);
+
+    load();
+  </script>
+</body>
+</html>

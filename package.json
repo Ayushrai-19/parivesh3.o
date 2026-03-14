@@ -1,0 +1,16 @@
+{
+  "name": "parivesh-3-monorepo",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "install:all": "npm install && npm --prefix server install && npm --prefix client install",
+    "dev": "concurrently \"npm --prefix server run dev\" \"npm --prefix client run dev\"",
+    "dev:memory": "concurrently \"npm --prefix server run dev:memory\" \"npm --prefix client run dev\"",
+    "start": "concurrently \"npm --prefix server run start\" \"npm --prefix client run start\"",
+    "start:memory": "concurrently \"npm --prefix server run start:memory\" \"npm --prefix client run start\"",
+    "seed": "npm --prefix server run seed"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

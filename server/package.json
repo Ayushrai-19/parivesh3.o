@@ -1,0 +1,35 @@
+{
+  "name": "parivesh3-server",
+  "version": "1.0.0",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "nodemon src/index.js",
+    "predev:memory": "node -e \"require('kill-port')(5000).catch(() => {})\"",
+    "dev:memory": "set USE_INMEMORY_DB=true&& nodemon src/index.js",
+    "start": "node src/index.js",
+    "prestart:memory": "node -e \"require('kill-port')(5000).catch(() => {})\"",
+    "start:memory": "set USE_INMEMORY_DB=true&& node src/index.js",
+    "seed": "node sql/seed.js"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "docx": "^9.5.1",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "express-validator": "^7.2.1",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^1.4.5-lts.2",
+    "nodemailer": "^6.10.1",
+    "pg": "^8.13.3",
+    "pg-mem": "^3.0.5",
+    "puppeteer": "^24.5.0"
+  },
+  "devDependencies": {
+    "kill-port": "^2.0.1",
+    "nodemon": "^3.1.9"
+  }
+}
