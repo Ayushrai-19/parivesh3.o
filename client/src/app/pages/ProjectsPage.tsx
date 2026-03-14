@@ -1,9 +1,8 @@
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
 import { GovHeader } from "../components/GovHeader";
 import { Eye, Filter, Search, MapPin, Calendar, ShieldCheck, AlertTriangle, CheckCircle, Clock3 } from "lucide-react";
-import { Circle, CircleMarker, MapContainer, Popup, TileLayer } from "react-leaflet";
-import "leaflet/dist/leaflet.css";
+import { PublicProjects3DMap } from "../components/PublicProjects3DMap";
 import { workflowApi, type PublicProject } from "../services/workflowApi";
 
 const prettyStatus = (status: string) => status.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
@@ -216,54 +215,11 @@ export function ProjectsPage() {
 
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-100">
-              <h2 className="font-semibold text-gray-900">OpenStreetMap View</h2>
-              <p className="text-xs text-gray-500 mt-1">Markers show project name, sector, status and risk score</p>
+              <h2 className="font-semibold text-gray-900">3D Public Project Map</h2>
+              <p className="text-xs text-gray-500 mt-1">Tilt, zoom, and explore risk zones in a 3D-style view</p>
             </div>
             <div className="h-[520px]">
-              <MapContainer center={[22.59, 78.96]} zoom={4} className="h-full w-full" scrollWheelZoom={true}>
-                <TileLayer
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                />
-                {filteredProjects.map((project) => (
-                  <Fragment key={`layer-${project.application_id}`}>
-                    {project.circle_visible && project.circle_radius_m ? (
-                      <Circle
-                        key={`zone-${project.application_id}`}
-                        center={[project.map_lat, project.map_lng]}
-                        radius={project.circle_radius_m}
-                        pathOptions={{
-                          color: project.environmental_risk_band === "HIGH" ? "#dc2626" : project.environmental_risk_band === "MODERATE" ? "#d97706" : "#059669",
-                          fillColor: project.environmental_risk_band === "HIGH" ? "#ef4444" : project.environmental_risk_band === "MODERATE" ? "#f59e0b" : "#10b981",
-                          fillOpacity: 0.2,
-                          weight: 2,
-                        }}
-                      />
-                    ) : null}
-                    <CircleMarker
-                      key={`marker-${project.application_id}`}
-                      center={[project.map_lat, project.map_lng]}
-                      pathOptions={{
-                        color: project.environmental_risk_band === "HIGH" ? "#dc2626" : project.environmental_risk_band === "MODERATE" ? "#d97706" : "#059669",
-                        fillOpacity: 0.65,
-                      }}
-                      radius={8}
-                    >
-                      <Popup>
-                        <div className="space-y-1">
-                          <div className="font-semibold text-gray-900">{project.project_name}</div>
-                          <div className="text-xs text-gray-700">Sector: {project.sector}</div>
-                          <div className="text-xs text-gray-700">Status: {prettyStatus(project.current_status)}</div>
-                          <div className="text-xs text-gray-700">Risk: {project.environmental_risk_score} ({project.environmental_risk_band})</div>
-                          <div className="text-xs text-gray-700">
-                            Zone Overlay: {project.circle_visible ? "Enabled" : "Pending docs/payment"}
-                          </div>
-                        </div>
-                      </Popup>
-                    </CircleMarker>
-                  </Fragment>
-                ))}
-              </MapContainer>
+              <PublicProjects3DMap projects={filteredProjects} />
             </div>
           </div>
         </div>
